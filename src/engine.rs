@@ -74,7 +74,6 @@ use crate::types::TransactionId;
 #[cfg_attr(test, derive(Debug))]
 struct TransactionWrapper {
     pub(self) transaction: Transaction,
-    // pub(self) disputed_by: BTreeSet<TransactionId>,
     pub(self) disputed: bool,
 }
 
@@ -82,7 +81,6 @@ impl TransactionWrapper {
     fn new(transaction: Transaction) -> Self {
         Self {
             transaction,
-            // disputed_by: BTreeSet::default(),
             disputed: false,
         }
     }
@@ -110,66 +108,67 @@ impl Engine {
             transactions,
         } = self;
         macro_rules! charge {
-            ($charge_type:ident, $tx:ident, $client:ident, $amount:ident) => {{
+            ($action:ident @ [$client:ident, $tx:ident, $amount:ident]) => {{
                 utils::assert_transaction_doesnt_exists(transactions, $tx)?;
                 let client = utils::get_or_insert_client(clients, *$client);
-                client.$charge_type(*$amount)?;
+                client.$action(*$amount)?;
             }};
-        };
-        match &transaction {
-            Transaction::Deposit(Charge { client, tx, amount }) => {
-                charge!(deposit, tx, client, amount);
-                // utils::assert_transaction_doesnt_exists(transactions, tx)?;
-                // let client = utils::get_or_insert_client(clients, *client);
-                // client.deposit(*amount)?;
-            },
-            Transaction::Withdrawal(Charge { client, tx, amount }) => {
-                utils::assert_transaction_doesnt_exists(transactions, tx)?;
-                let client = utils::get_or_insert_client(clients, *client);
-                client.withdraw(*amount)?;
-            },
-            Transaction::Dispute(Record { tx, .. }) => {
+        }
+        macro_rules! record {
+            ($action:ident @ $tx:ident, disputed := true) => {{
                 let TransactionWrapper {
                     transaction: prev_transaction,
                     disputed,
-                } = utils::get_transaction_wrapper(transactions, tx)?;
+                } = utils::get_transaction_wrapper(transactions, $tx)?;
                 if !*disputed {
                     let Charge { client, amount, .. } =
                         utils::as_deposit(prev_transaction)?;
                     let client = utils::get_client(clients, client)?;
-                    client.dispute(*amount)?;
+                    client.$action(*amount)?;
                     *disputed = true;
                 };
-            },
-            Transaction::Resolve(Record { tx, .. }) => {
+            }};
+            ($action:ident @ $tx:ident, disputed := false) => {{
                 let TransactionWrapper {
                     transaction: prev_transaction,
                     disputed,
-                } = utils::get_transaction_wrapper(transactions, tx)?;
+                } = utils::get_transaction_wrapper(transactions, $tx)?;
                 if *disputed {
                     let Charge { client, amount, .. } =
                         utils::as_deposit(prev_transaction)?;
                     let client = utils::get_client(clients, client)?;
-                    client.resolve(*amount)?;
+                    client.$action(*amount)?;
                     *disputed = false;
                 };
+            }};
+        }
+        match &transaction {
+            Transaction::Deposit(Charge { client, tx, amount }) => {
+                charge!(deposit @ [client, tx, amount])
+            },
+            Transaction::Withdrawal(Charge { client, tx, amount }) => {
+                charge!(withdraw @ [client, tx, amount])
+            },
+            Transaction::Dispute(Record { tx, .. }) => {
+                record!(dispute @ tx, disputed := true)
+            },
+            Transaction::Resolve(Record { tx, .. }) => {
+                record!(resolve @ tx, disputed := false)
             },
             Transaction::Chargeback(Record { tx, .. }) => {
-                let TransactionWrapper {
-                    transaction: prev_transaction,
-                    disputed,
-                } = utils::get_transaction_wrapper(transactions, tx)?;
-                if !*disputed {
-                    let Charge { client, amount, .. } =
-                        utils::as_deposit(prev_transaction)?;
-                    let client = utils::get_client(clients, client)?;
-                    client.charge_back(*amount)?;
-                    *disputed = false;
-                };
+                record!(charge_back @ tx, disputed := false)
             },
         };
-        let tx = transaction.tx();
-        utils::insert_transaction(transactions, tx, transaction);
+        transaction
+            .charge_tx()
+            .map(|tx| utils::insert_transaction(transactions, tx, transaction));
         Ok(())
     }
+
+    pub fn process_batch(&mut self, transactions: Vec<Transaction>) {
+        transactions.into_iter().for_each(|transaction| self.process(transaction).unwrap_or_else(|err| println!("Error: {}", err)));
+    }
+
+    #[cfg(test)]
+    pub fn clients(self) -> BTreeMap<ClientId, Client> { self.clients }
 }

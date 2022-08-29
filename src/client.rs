@@ -22,25 +22,13 @@ impl Client {
         }
     }
 
-    pub fn id(&self) -> ClientId {
-        self.id
-    }
+    pub fn id(&self) -> ClientId { self.id }
 
-    pub fn available(&self) -> Amount {
-        self.available
-    }
+    pub fn available(&self) -> Amount { self.available }
 
-    pub fn held(&self) -> Amount {
-        self.held
-    }
+    pub fn held(&self) -> Amount { self.held }
 
-    pub fn locked(&self) -> bool {
-        self.locked
-    }
-
-    pub fn total(&self) -> Amount {
-        self.available + self.held
-    }
+    pub fn locked(&self) -> bool { self.locked }
 
     pub fn deposit(&mut self, amount: Amount) -> EngineResult<()> {
         self.assert_not_locked()?;
@@ -95,10 +83,6 @@ impl Client {
 
     pub fn lock(&mut self) {
         self.locked = true;
-    }
-
-    pub fn unlock(&mut self) {
-        self.locked = false;
     }
 
     fn assert_not_locked(&self) -> EngineResult<()> {

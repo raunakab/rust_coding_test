@@ -32,13 +32,14 @@ impl Transaction {
         }
     }
 
-    pub fn tx(&self) -> TransactionId {
+    pub fn charge_tx(&self) -> Option<TransactionId> {
         match self {
             Self::Deposit(Charge { tx, .. })
-            | Self::Withdrawal(Charge { tx, .. })
-            | Self::Dispute(Record { tx, .. })
-            | Self::Resolve(Record { tx, .. })
-            | Self::Chargeback(Record { tx, .. }) => *tx,
+            | Self::Withdrawal(Charge { tx, .. }) => Some(*tx),
+
+            Self::Dispute(Record { .. })
+            | Self::Resolve(Record { .. })
+            | Self::Chargeback(Record { .. }) => None,
         }
     }
 }
