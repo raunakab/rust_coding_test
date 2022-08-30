@@ -15,15 +15,6 @@ pub(super) fn get_or_insert_client(
     clients.entry(client).or_insert_with(|| Client::new(client))
 }
 
-pub(super) fn insert_transaction(
-    transactions: &mut BTreeMap<TransactionId, TransactionWrapper>,
-    tx: TransactionId,
-    transaction: Transaction,
-) {
-    let transaction_wrapper = TransactionWrapper::new(transaction);
-    transactions.insert(tx, transaction_wrapper);
-}
-
 pub(super) fn assert_transaction_doesnt_exists(
     transactions: &BTreeMap<TransactionId, TransactionWrapper>,
     tx: &TransactionId,

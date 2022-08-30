@@ -76,6 +76,5 @@ pub fn deserialize(path: PathBuf) -> EngineResult<Vec<Transaction>> {
             transactions
         },
     );
-
     Ok(transactions)
 }

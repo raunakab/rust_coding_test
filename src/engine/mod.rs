@@ -1,6 +1,8 @@
 use std::path::PathBuf;
 
 use crate::engine::core::Core;
+use crate::engine::deserializer::deserialize;
+use crate::engine::serializer::serialize;
 use crate::types::EngineResult;
 
 #[cfg(test)]
@@ -38,15 +40,15 @@ mod serializer;
 #[cfg(test)]
 mod tests;
 
-pub fn run<P>(src: P) -> EngineResult<()>
+pub fn batch<P>(src: P) -> EngineResult<()>
 where
     P: Into<PathBuf>,
 {
     let src = src.into();
-    let transactions = deserializer::deserialize(src)?;
+    let transactions = deserialize(src)?;
     let mut core = Core::default();
     core.process_batch(transactions);
     let clients = core.clients();
-    serializer::serialize(clients);
+    serialize(clients);
     Ok(())
 }

@@ -1,6 +1,6 @@
-use crate::engine::run;
+use crate::engine::batch;
 
 #[test]
 fn basic() {
-    run("assets/transactions.csv").unwrap();
+    batch("assets/transactions.csv").unwrap();
 }

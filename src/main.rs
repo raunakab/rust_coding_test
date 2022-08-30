@@ -16,7 +16,7 @@ fn main() -> ExitCode {
     let args = env::args().collect::<Vec<_>>();
     let args = &*args;
     match args {
-        [_, src] => engine::run(src),
+        [_, src] => engine::batch(src),
         _ => Err("Oops, this binary requires one argument (which is the relative path to the input file)."),
     }.map_or(ExitCode::FAILURE, |()| ExitCode::SUCCESS)
 }

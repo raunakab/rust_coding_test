@@ -102,7 +102,10 @@ impl Core {
         };
         transaction
             .charge_tx()
-            .map(|tx| utils::insert_transaction(transactions, tx, transaction));
+            .map(|tx| {
+                let transaction_wrapper = TransactionWrapper::new(transaction);
+                transactions.insert(tx, transaction_wrapper);
+            });
         Ok(())
     }
 
