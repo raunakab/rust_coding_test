@@ -1,7 +1,10 @@
+use serde::Deserialize;
+
 use crate::types::Amount;
 use crate::types::ClientId;
 use crate::types::TransactionId;
 
+#[derive(Deserialize)]
 #[cfg_attr(test, derive(Debug))]
 pub struct Charge {
     pub client: ClientId,
@@ -9,19 +12,21 @@ pub struct Charge {
     pub amount: Amount,
 }
 
+#[derive(Deserialize)]
 #[cfg_attr(test, derive(Debug))]
-pub struct Record {
+pub struct ChargeRef {
     pub client: ClientId,
     pub tx: TransactionId,
 }
 
+#[derive(Deserialize)]
 #[cfg_attr(test, derive(Debug))]
 pub enum Transaction {
     Deposit(Charge),
     Withdrawal(Charge),
-    Dispute(Record),
-    Resolve(Record),
-    Chargeback(Record),
+    Dispute(ChargeRef),
+    Resolve(ChargeRef),
+    Chargeback(ChargeRef),
 }
 
 impl Transaction {
@@ -36,10 +41,9 @@ impl Transaction {
         match self {
             Self::Deposit(Charge { tx, .. })
             | Self::Withdrawal(Charge { tx, .. }) => Some(*tx),
-
-            Self::Dispute(Record { .. })
-            | Self::Resolve(Record { .. })
-            | Self::Chargeback(Record { .. }) => None,
+            Self::Dispute(ChargeRef { .. })
+            | Self::Resolve(ChargeRef { .. })
+            | Self::Chargeback(ChargeRef { .. }) => None,
         }
     }
 }

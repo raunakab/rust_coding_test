@@ -4,6 +4,8 @@ use crate::types::Amount;
 use crate::types::ClientId;
 use crate::types::EngineResult;
 
+const COMPARISON_ERROR: &'static str = "Unable to compare values.";
+
 #[cfg_attr(test, derive(Debug))]
 pub struct Client {
     id: ClientId,
@@ -16,19 +18,31 @@ impl Client {
     pub fn new(id: u16) -> Self {
         Self {
             id,
-            available: 0,
-            held: 0,
+            available: 0.0,
+            held: 0.0,
             locked: false,
         }
     }
 
-    pub fn id(&self) -> ClientId { self.id }
+    pub fn id(&self) -> ClientId {
+        self.id
+    }
 
-    pub fn available(&self) -> Amount { self.available }
+    pub fn available(&self) -> Amount {
+        self.available
+    }
 
-    pub fn held(&self) -> Amount { self.held }
+    pub fn held(&self) -> Amount {
+        self.held
+    }
 
-    pub fn locked(&self) -> bool { self.locked }
+    pub fn total(&self) -> Amount {
+        self.available + self.held
+    }
+
+    pub fn locked(&self) -> bool {
+        self.locked
+    }
 
     pub fn deposit(&mut self, amount: Amount) -> EngineResult<()> {
         self.assert_not_locked()?;
@@ -38,39 +52,48 @@ impl Client {
 
     pub fn withdraw(&mut self, amount: Amount) -> EngineResult<()> {
         self.assert_not_locked()?;
-        let comparison = self.available.cmp(&amount);
+        let comparison = self
+            .available
+            .partial_cmp(&amount)
+            .ok_or_else(|| COMPARISON_ERROR)?;
         match comparison {
-            Ordering::Equal | Ordering::Greater => {
+            Ordering::Less => Err("Oops, you cannot withdraw more money than what exists in your available funds."),
+            _ => {
                 self.available = self.available - amount;
                 Ok(())
             },
-            Ordering::Less => Err("Oops, you cannot withdraw more money than what exists in your available funds."),
         }
     }
 
     pub fn dispute(&mut self, amount: Amount) -> EngineResult<()> {
         self.assert_not_locked()?;
-        let comparison = self.available.cmp(&amount);
+        let comparison = self
+            .available
+            .partial_cmp(&amount)
+            .ok_or_else(|| COMPARISON_ERROR)?;
         match comparison {
-            Ordering::Equal | Ordering::Greater => {
+            Ordering::Less => Err("Oops, you cannot dispute a transaction which deals with more money than what exists in your available funds."),
+            _ => {
                 self.available = self.available - amount;
                 self.held = self.held + amount;
                 Ok(())
             },
-            Ordering::Less => Err("Oops, you cannot dispute a transaction which deals with more money than what exists in your available funds."),
         }
     }
 
     pub fn resolve(&mut self, amount: Amount) -> EngineResult<()> {
         self.assert_not_locked()?;
-        let comparison = self.held.cmp(&amount);
+        let comparison = self
+            .available
+            .partial_cmp(&amount)
+            .ok_or_else(|| COMPARISON_ERROR)?;
         match comparison {
-            Ordering::Equal | Ordering::Greater => {
+            Ordering::Less => Err("Oops, this dispute is not able to be resolved because you don't have enough money in your held funds."),
+            _ => {
                 self.held = self.held - amount;
                 self.available = self.available + amount;
                 Ok(())
             },
-            Ordering::Less => Err("Oops, this dispute is not able to be resolved because you don't have enough money in your held funds."),
         }
     }
 
