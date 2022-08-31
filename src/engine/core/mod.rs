@@ -100,12 +100,10 @@ impl Core {
                 charge_ref!(charge_back @ tx, disputed := false)
             },
         };
-        transaction
-            .charge_tx()
-            .map(|tx| {
-                let transaction_wrapper = TransactionWrapper::new(transaction);
-                transactions.insert(tx, transaction_wrapper);
-            });
+        transaction.charge_tx().map(|tx| {
+            let transaction_wrapper = TransactionWrapper::new(transaction);
+            transactions.insert(tx, transaction_wrapper);
+        });
         Ok(())
     }
 
@@ -117,5 +115,9 @@ impl Core {
 
     pub fn clients(self) -> Vec<Client> {
         self.clients.into_values().collect()
+    }
+
+    pub fn clients_ref(&self) -> Vec<&Client> {
+        self.clients.values().collect()
     }
 }

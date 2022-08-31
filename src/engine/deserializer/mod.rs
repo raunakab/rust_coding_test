@@ -2,6 +2,7 @@
 mod tests;
 
 use std::path::PathBuf;
+use std::str::FromStr;
 
 use serde::Deserialize;
 
@@ -77,4 +78,51 @@ pub fn deserialize(path: PathBuf) -> EngineResult<Vec<Transaction>> {
         },
     );
     Ok(transactions)
+}
+
+pub fn deserialize_string(string: String) -> EngineResult<Transaction> {
+    let segments = string
+        .split(",")
+        .filter_map(|segment| {
+            let segment = segment.trim();
+            match segment {
+                "" => None,
+                _ => Some(segment),
+            }
+        })
+        .collect::<Vec<_>>();
+    fn parse<T>(data: &str) -> EngineResult<T>
+    where
+        T: FromStr,
+    {
+        data.parse().map_err(|_| "Unable to parse the data.")
+    }
+    match *segments {
+        [r#type, client, tx] => {
+            let r#type = r#type.into();
+            let client = parse(client)?;
+            let tx = parse(tx)?;
+            RawTransaction {
+                r#type,
+                client,
+                tx,
+                amount: None,
+            }
+            .try_into()
+        },
+        [r#type, client, tx, amount] => {
+            let r#type = r#type.into();
+            let client = parse(client)?;
+            let tx = parse(tx)?;
+            let amount = parse(amount)?;
+            RawTransaction {
+                r#type,
+                client,
+                tx,
+                amount: Some(amount),
+            }
+            .try_into()
+        },
+        _ => Err("Invalid data."),
+    }
 }

@@ -6,6 +6,7 @@ use crate::types::EngineResult;
 
 const COMPARISON_ERROR: &'static str = "Unable to compare values.";
 
+#[derive(Clone)]
 #[cfg_attr(test, derive(Debug))]
 pub struct Client {
     id: ClientId,
