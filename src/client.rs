@@ -99,6 +99,7 @@ impl Client {
     }
 
     pub fn charge_back(&mut self, amount: Amount) -> EngineResult<()> {
+        self.assert_not_locked()?;
         self.resolve(amount)?;
         self.withdraw(amount)?;
         self.lock();

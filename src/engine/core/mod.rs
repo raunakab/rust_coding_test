@@ -107,17 +107,7 @@ impl Core {
         Ok(())
     }
 
-    pub fn process_batch(&mut self, transactions: Vec<Transaction>) {
-        transactions.into_iter().for_each(|transaction| {
-            self.process(transaction).ok();
-        });
-    }
-
-    pub fn clients(self) -> Vec<Client> {
-        self.clients.into_values().collect()
-    }
-
-    pub fn clients_ref(&self) -> Vec<&Client> {
+    pub fn clients(&self) -> Vec<&Client> {
         self.clients.values().collect()
     }
 }
