@@ -1,6 +1,5 @@
 # Rust Coding Challenge
-
-## Streaming Engine
+## Description
 This toy-engine implements a streamed version in which the data is streamed through memory instead of being directly loaded *all* into memory and then operated on.
 
 Furthermore, the engine separated into 3 phases:
@@ -28,14 +27,16 @@ All transaction types have been completed.
 The software is able to handle `deposits`, `withdrawals`, `disputes`, `resolves`, and `chargebacks`.
 
 ### Correctness
-...
-<!-- I have written a few tests to test out each phase of the engine.
-I have also tested by running the binary with actual inputs.
-Furthermore, I've tested for edge cases (i.e., resolving a charge multiple times to make sure that extra money is not added, etc.).
-These custom tests are passing.
+I have written unit tests for the `deserialization` and `core` phases of the engine.
+The serialization phase was tested by actually running the binary.
+The entire engine as a whole was also tested in this similar fashion.
+The example datasets I ran the engine against can be found in the [`./assets`](assets) directory.
+
+All the custom tests are passing.
+I also believe that I have covered interesting edge cases (i.e., disputing one transaction multiple times, resolving a non-disputed transaction, etc.).
 
 As a minor digression, `rust` is a **wonderful** language in that it forces developers to exhaustively match on all cases (or a compile-time error will be thrown).
-This forces vigilance, an understandably crucial trait in the crypto-space. -->
+This forces vigilance, an understandably crucial trait in the crypto-space.
 
 ### Safety and Robustness
 I am using **no** unsafe features/functions.
