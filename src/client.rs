@@ -6,7 +6,7 @@ use crate::types::EngineResult;
 
 const COMPARISON_ERROR: &'static str = "Unable to compare values.";
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 #[cfg_attr(test, derive(Debug))]
 pub struct Client {
     id: ClientId,
@@ -16,12 +16,28 @@ pub struct Client {
 }
 
 impl Client {
+    #[cfg(not(test))]
     pub fn new(id: u16) -> Self {
         Self {
             id,
             available: 0.0,
             held: 0.0,
             locked: false,
+        }
+    }
+
+    #[cfg(test)]
+    pub fn new(
+        id: ClientId,
+        available: Amount,
+        held: Amount,
+        locked: bool,
+    ) -> Self {
+        Self {
+            id,
+            available,
+            held,
+            locked,
         }
     }
 
@@ -85,7 +101,7 @@ impl Client {
     pub fn resolve(&mut self, amount: Amount) -> EngineResult<()> {
         self.assert_not_locked()?;
         let comparison = self
-            .available
+            .held
             .partial_cmp(&amount)
             .ok_or_else(|| COMPARISON_ERROR)?;
         match comparison {

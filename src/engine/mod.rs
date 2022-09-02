@@ -6,8 +6,6 @@ use crate::types::EngineResult;
 mod core;
 mod deserializer;
 mod serializer;
-#[cfg(test)]
-mod tests;
 
 pub fn run<P>(src: P) -> EngineResult<()>
 where
