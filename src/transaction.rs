@@ -4,7 +4,7 @@ use crate::types::Amount;
 use crate::types::ClientId;
 use crate::types::TransactionId;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, PartialEq)]
 #[cfg_attr(test, derive(Debug))]
 pub struct Charge {
     pub client: ClientId,
@@ -12,14 +12,14 @@ pub struct Charge {
     pub amount: Amount,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, PartialEq)]
 #[cfg_attr(test, derive(Debug))]
 pub struct ChargeRef {
     pub client: ClientId,
     pub tx: TransactionId,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, PartialEq)]
 #[cfg_attr(test, derive(Debug))]
 pub enum Transaction {
     Deposit(Charge),

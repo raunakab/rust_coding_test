@@ -2,7 +2,6 @@
 mod tests;
 
 use std::path::PathBuf;
-use std::str::FromStr;
 
 use serde::Deserialize;
 
@@ -16,14 +15,14 @@ use crate::types::TransactionId;
 
 #[derive(Deserialize)]
 #[cfg_attr(test, derive(Debug))]
-struct RawTransaction {
-    r#type: String,
+struct RawTransaction<'a> {
+    r#type: &'a str,
     client: ClientId,
     tx: TransactionId,
     amount: Option<Amount>,
 }
 
-impl TryFrom<RawTransaction> for Transaction {
+impl<'a> TryFrom<RawTransaction<'a>> for Transaction {
     type Error = &'static str;
 
     fn try_from(
@@ -35,7 +34,9 @@ impl TryFrom<RawTransaction> for Transaction {
         }: RawTransaction,
     ) -> Result<Self, Self::Error> {
         fn get_amount(amount: Option<Amount>) -> EngineResult<Amount> {
-            amount.ok_or_else(|| "")
+            amount.ok_or_else(|| {
+                "Unable to get the amount for this transaction type."
+            })
         }
         match &*r#type {
             "deposit" => get_amount(amount).map(|amount| {
@@ -54,75 +55,31 @@ impl TryFrom<RawTransaction> for Transaction {
     }
 }
 
-pub fn deserialize(path: PathBuf) -> EngineResult<Vec<Transaction>> {
-    let mut writer = csv::Reader::from_path(path)
-        .map_err(|_| "Unable to read from the provided file.")?;
-    let headers = writer.headers().ok().map(|headers| {
-        let mut headers = headers.clone();
-        headers.trim();
-        headers
-    });
-    let headers = headers.as_ref();
-    let transactions = writer.records().into_iter().fold(
-        vec![],
-        |mut transactions, string_record| {
-            string_record
-                .ok()
-                .and_then(|mut string_record| {
-                    string_record.trim();
-                    string_record.deserialize::<RawTransaction>(headers).ok()
-                })
-                .and_then(|raw_transaction| raw_transaction.try_into().ok())
-                .map(|transaction| transactions.push(transaction));
-            transactions
-        },
-    );
-    Ok(transactions)
-}
-
-pub fn deserialize_string(string: String) -> EngineResult<Transaction> {
-    let segments = string
-        .split(",")
-        .filter_map(|segment| {
-            let segment = segment.trim();
-            match segment {
-                "" => None,
-                _ => Some(segment),
-            }
+pub fn deserialize<P, F>(src: P, mut callback: F) -> EngineResult<()>
+where
+    P: Into<PathBuf>,
+    F: FnMut(Transaction),
+{
+    let src = src.into();
+    let mut reader = csv::Reader::from_path(src)
+        .map_err(|_| "Unable to read from the given source file.")?;
+    let mut raw_record = csv::ByteRecord::new();
+    let headers = reader
+        .byte_headers()
+        .map(|headers| {
+            let mut headers = headers.clone();
+            headers.trim();
+            headers
         })
-        .collect::<Vec<_>>();
-    fn parse<T>(data: &str) -> EngineResult<T>
-    where
-        T: FromStr,
-    {
-        data.parse().map_err(|_| "Unable to parse the data.")
+        .map_err(|_| "Unable to read headers for this csv file.")?;
+    let headers = Some(&headers);
+    while reader.read_byte_record(&mut raw_record).unwrap_or_default() {
+        raw_record.trim();
+        raw_record
+            .deserialize::<RawTransaction>(headers)
+            .ok()
+            .and_then(|raw_transaction| raw_transaction.try_into().ok())
+            .map(&mut callback);
     }
-    match *segments {
-        [r#type, client, tx] => {
-            let r#type = r#type.into();
-            let client = parse(client)?;
-            let tx = parse(tx)?;
-            RawTransaction {
-                r#type,
-                client,
-                tx,
-                amount: None,
-            }
-            .try_into()
-        },
-        [r#type, client, tx, amount] => {
-            let r#type = r#type.into();
-            let client = parse(client)?;
-            let tx = parse(tx)?;
-            let amount = parse(amount)?;
-            RawTransaction {
-                r#type,
-                client,
-                tx,
-                amount: Some(amount),
-            }
-            .try_into()
-        },
-        _ => Err("Invalid data."),
-    }
+    Ok(())
 }

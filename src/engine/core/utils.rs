@@ -8,11 +8,20 @@ use crate::types::ClientId;
 use crate::types::EngineResult;
 use crate::types::TransactionId;
 
+#[cfg(not(test))]
 pub(super) fn get_or_insert_client(
     clients: &mut BTreeMap<ClientId, Client>,
     client: ClientId,
 ) -> &mut Client {
     clients.entry(client).or_insert_with(|| Client::new(client))
+}
+
+#[cfg(test)]
+pub(super) fn get_or_insert_client(
+    clients: &mut BTreeMap<ClientId, Client>,
+    client: ClientId,
+) -> &mut Client {
+    clients.entry(client).or_insert_with(|| Client::new(client, 0.0, 0.0, false))
 }
 
 pub(super) fn assert_transaction_doesnt_exists(
